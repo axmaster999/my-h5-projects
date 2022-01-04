@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>翻译小站</title>
+    <script src="./crypto.js"></script>
+    <script src="./jquery.js"></script>
+</head>
+
+<style>
+    .container {
+
+        display: flex;
+        height: 100%;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        width: 50%;
+        margin-top: 50px;
+    }
+
+    #msg {
+        border-radius: 5px;
+        display: block;
+        font-family: ArialMT, "Microsoft YaHei", Arial, sans-serif, Helvetica, STHeiti;
+        width: 100%;
+        min-height: 150px;
+        padding: 20px;
+        border: 0;
+        font-size: 24px;
+        color: #333;
+        line-height: 30px;
+        overflow: auto;
+        background: rgb(235, 232, 232);
+        margin-bottom: 30px;
+    }
+
+    .input-box {
+        width: 100%;
+    }
+
+    .pList {
+        border: 2px solid #d3c2c7;
+        border-radius: 5px;
+        width: 100%;
+        background: rgb(240, 238, 238);
+        padding: 20px;
+        margin-top: 20px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .button {
+        border-radius: 10px;
+        font-size: large;
+        width: 200px;
+        height: 50px;
+        -webkit-transition-duration: 0.4s;
+        /* Safari */
+        transition-duration: 0.4s;
+    }
+
+    .button:hover {
+        background-color: #338ed8;
+        /* Green */
+        color: white;
+    }
+
+    .content {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        position: relative;
+        margin: 20px 0px;
+    }
+    .tip{
+        width: 50%;
+        height: 50px;
+        background: rgb(219 225 227);
+        color: #db836d;
+        line-height: 50px;
+        padding: 5px;
+        font-size: larger;
+        padding-left: 10px;
+    }
+    .result{
+        position: absolute;
+        left: 100px;
+        font-size: x-large;
+        
+    }
+</style>
+
+<body>
+    <div class="container">
+        <div class="input-box">
+            <textarea id="msg" placeholder="请输入你想翻译的内容"></textarea>
+            <button class="button" id="btnPost">翻译</button>
+        </div>
+
+    </div>
+
+
+    <script>
+        $(document).keyup(function (event) {
+            if (event.keyCode == 13) {
+                $("#btnPost").blur();
+                $("#btnPost").trigger("click");
+            }
+        });
+        document.querySelector("#btnPost").addEventListener('click', async function () {
+            let query = document.querySelector("#msg").value
+
+            if (document.querySelector(".pList")) {
+                document.querySelector(".pList").remove()
+                document.querySelector(".tip").remove()
+            }
+            if (!query) {
+                return
+            }
+
+            let tip = document.createElement('p')
+            tip.innerText = "点击文本即可复制"
+            tip.className = "tip"
+
+            var div = document.createElement('div')
+            div.className = 'pList'
+            document.querySelector(".input-box").appendChild(tip)
+            document.querySelector(".input-box").appendChild(div)
+
+
+            let apiUrl = 'https://openapi.youdao.com/api'
+            var appKey = '6b17eaccea3867be';
+            var key = 'hq7qWXfrWxJYmrQr6bjVR9Ptttut7l10';
+            var from = 'auto';
+
+
+
+
+            let toList = [
+                { name: "中文", code: 'zh-CHS' },
+                { name: "英文", code: 'en' },
+                { name: "菲律宾语", code: 'tl' },
+                { name: "印尼文", code: 'id' },
+                { name: "葡萄牙文", code: 'pt' }
+
+            ]
+
+            toList.forEach(element => {
+
+                var salt = (new Date).getTime() + Math.random() * 100;
+                var curtime = Math.round(new Date().getTime() / 1000);
+                var str1 = appKey + truncate(query) + salt + curtime + key;
+                var vocabId = '您的用户词表ID';
+                var sign = CryptoJS.SHA256(str1).toString(CryptoJS.enc.Hex);
+                $.ajax({
+                    url: 'https://openapi.youdao.com/api',
+                    type: 'post',
+                    dataType: 'jsonp',
+                    data: {
+                        q: query,
+                        appKey: appKey,
+                        salt: salt,
+                        from: from,
+                        to: element.code,
+                        sign: sign,
+                        signType: "v3",
+                        curtime: curtime,
+                        vocabId: vocabId,
+                    },
+                    success: function (data) {
+                        createP(element.name, data.translation[0])
+                    }
+                });
+            });
+        })
+
+        function truncate(q) {
+            var len = q.length;
+            if (len <= 20) return q;
+            return q.substring(0, 10) + len + q.substring(len - 10, len);
+        }
+
+        function createP(name, src) {
+            let div = document.createElement('div')
+            div.className = "content"
+            let p = document.createElement('p')
+            let span = document.createElement('span')
+            span.innerText = name + ":"
+            p.innerText = src
+            div.appendChild(span)
+            p.className = "result"
+            div.appendChild(p)
+            document.querySelector(".pList").appendChild(div)
+            $(p).on('click',()=>{
+                let input = document.createElement('input')
+                p.appendChild(input)
+                input.value = p.innerText
+                input.select()
+                document.execCommand("copy")
+                p.removeChild(input)
+            })
+            
+        }
+    </script>
+
+
+</body>
+
+</html>
